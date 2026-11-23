@@ -41,7 +41,7 @@
   </style>
 </head>
 <body>
-  <h3>تجربة ESP Box + Skeleton + Line + الطول</h3>
+  <h3>تجربة ESP Box + Skeleton Line + الطول</h3>
   <button id="startBtn">تشغيل الكاميرا</button>
   <div class="wrap">
     <video id="video" playsinline autoplay muted></video>
@@ -57,12 +57,6 @@
 
     const FOCAL_PX = 700;
     const DISTANCE_M = 2.5;
-
-    const EDGES = [
-      [11, 12], [11, 13], [13, 15], [12, 14], [14, 16],
-      [11, 23], [12, 24], [23, 24],
-      [23, 25], [25, 27], [24, 26], [26, 28]
-    ];
 
     const pose = new Pose({
       locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
@@ -94,10 +88,12 @@
       const x2 = Math.max(...xs);
       const y2 = Math.max(...ys);
 
+      // 1) ESP Box
       ctx.strokeStyle = "#00ff00";
       ctx.lineWidth = 2;
       ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
 
+      // 2) ESP Line من أسفل الشاشة إلى أسفل الصندوق
       ctx.strokeStyle = "#00ffff";
       ctx.lineWidth = 2;
       ctx.beginPath();
@@ -105,17 +101,23 @@
       ctx.lineTo((x1 + x2) / 2, y2);
       ctx.stroke();
 
-      ctx.strokeStyle = "#ff9800";
-      ctx.lineWidth = 2;
-      for (const [a, b] of EDGES) {
-        if (lm[a] && lm[b] && (lm[a].visibility ?? 1) > 0.5 && (lm[b].visibility ?? 1) > 0.5) {
-          ctx.beginPath();
-          ctx.moveTo(lm[a].x * canvas.width, lm[a].y * canvas.height);
-          ctx.lineTo(lm[b].x * canvas.width, lm[b].y * canvas.height);
-          ctx.stroke();
-        }
+      // 3) خط الجسم المركزي (بدل الهيكل العظمي الكامل)
+      // الكتف الأوسط (11, 12) إلى الورك الأوسط (23, 24)
+      if (lm[11] && lm[12] && lm[23] && lm[24]) {
+        const midShoulderX = (lm[11].x + lm[12].x) / 2 * canvas.width;
+        const midShoulderY = (lm[11].y + lm[12].y) / 2 * canvas.height;
+        const midHipX = (lm[23].x + lm[24].x) / 2 * canvas.width;
+        const midHipY = (lm[23].y + lm[24].y) / 2 * canvas.height;
+
+        ctx.strokeStyle = "#ff9800";
+        ctx.lineWidth = 4; // خط أوضح للإشارة للجسم
+        ctx.beginPath();
+        ctx.moveTo(midShoulderX, midShoulderY);
+        ctx.lineTo(midHipX, midHipY);
+        ctx.stroke();
       }
 
+      // 4) الطول التقريبي
       const hPx = Math.max(1, y2 - y1);
       const heightM = (hPx * DISTANCE_M) / FOCAL_PX;
       const heightCm = heightM * 100;
